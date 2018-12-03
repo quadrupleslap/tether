@@ -4,14 +4,18 @@
 
 tether window;
 
-void noop(void *ctx) {
+void drop(void *ctx) {
+    printf("%s dropped\n", (const char *)ctx);
+}
+
+void closed(void *ctx) {
     (void)ctx;
-    printf("nop\n");
+    printf("window closed\n");
 }
 
 void message(void *ctx, const char *data) {
     (void)ctx;
-    printf("msg  %s\n", data);
+    printf("%s received\n", data);
 
     if (!strcmp(data, "ready")) {
         tether_eval(window, "document.getElementById('name').textContent = 'Guzma'");
@@ -25,13 +29,13 @@ void message(void *ctx, const char *data) {
             .debug = false,
             .message = (tether_fn) {
                 .call = message,
-                .data = NULL,
-                .drop = noop
+                .data = "popup/message",
+                .drop = drop
             },
             .closed = (tether_fn) {
-                .call = noop,
-                .data = NULL,
-                .drop = noop
+                .call = closed,
+                .data = "popup/closed",
+                .drop = drop
             }
         });
 
@@ -52,13 +56,13 @@ void start(void *ctx) {
         .debug = true,
         .message = (tether_fn) {
             .call = message,
-            .data = NULL,
-            .drop = noop
+            .data = "main/message",
+            .drop = drop
         },
         .closed = (tether_fn) {
-            .call = noop,
-            .data = NULL,
-            .drop = noop
+            .call = closed,
+            .data = "main/closed",
+            .drop = drop
         }
     });
 
@@ -73,8 +77,8 @@ void start(void *ctx) {
 int main(void) {
     tether_start((tether_fn) {
         .call = start,
-        .data = NULL,
-        .drop = noop
+        .data = "start",
+        .drop = drop,
     });
 
     return 0;

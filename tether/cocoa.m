@@ -11,25 +11,33 @@
 - (BOOL)canBecomeMainWindow { return YES; }
 @end
 
-@interface RKHandler : NSObject <WKScriptMessageHandler>
+@interface RKHandler : NSObject <NSWindowDelegate, WKScriptMessageHandler>
 @end
 
 @implementation RKHandler {
-    tether_fn handler;
+    tether_fn message, closed;
 }
 
-- (id)initWithHandler:(tether_fn)fun {
-    handler = fun;
+- (id)initWithMessage:(tether_fn)a
+               closed:(tether_fn)b {
+    message = a;
+    closed = b;
     return self;
 }
 
 - (void)userContentController:(WKUserContentController *)userContentController
-      didReceiveScriptMessage:(WKScriptMessage *)message {
+      didReceiveScriptMessage:(WKScriptMessage *)scriptMessage {
     (void)userContentController;
 
-    id body = [message body];
+    id body = [scriptMessage body];
     if (![body isKindOfClass:[NSString class]]) return;
-    ((void (*)(void *data, const char *ptr))handler.call)(handler.data, [body UTF8String]);
+    ((void (*)(void *data, const char *ptr))message.call)(message.data, [body UTF8String]);
+}
+
+- (void)windowWillClose:(NSNotification *)notification {
+    (void)notification;
+
+    ((void (*)(void *data))closed.call)(closed.data);
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath 
@@ -45,7 +53,8 @@
 
 - (void)dealloc {
     //TODO: This doesn't run, and I have NO idea why.
-    handler.drop(handler.data);
+    message.drop(message.data);
+    closed.drop(closed.data);
 }
 @end
 
@@ -174,7 +183,7 @@ tether tether_new(tether_options opts) {
     WKWebView *webview = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:config];
 
     // Create and attach the handler.
-    RKHandler *handler = [[RKHandler alloc] initWithHandler:opts.handler];
+    RKHandler *handler = [[RKHandler alloc] initWithMessage:opts.message closed:opts.closed];
     [manager addScriptMessageHandler:handler name:@"__tether"];
     [webview addObserver:handler forKeyPath:@"title" options:0 context:nil];
     //TODO: We want to be more granular with the context menus, but WebKit doesn't support that yet.
@@ -182,6 +191,7 @@ tether tether_new(tether_options opts) {
                                                                   document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });"
                                                   injectionTime:WKUserScriptInjectionTimeAtDocumentStart
                                                forMainFrameOnly:YES]];
+    [window setDelegate:handler];
 
     // Attach the web view to the window.
     [window setContentView:webview];
