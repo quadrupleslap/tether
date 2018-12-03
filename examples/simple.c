@@ -6,24 +6,21 @@ tether window;
 
 void noop(void *ctx) {
     (void)ctx;
+    printf("nop\n");
 }
 
-void message(void *ctx, size_t len, const char *data) {
+void message(void *ctx, const char *data) {
     (void)ctx;
+    printf("msg  %s\n", data);
 
-    fwrite(data, 1, len, stdout);
-    printf("\n");
-
-    if (len == 5 && !strncmp(data, "ready", 5)) {
+    if (!strcmp(data, "ready")) {
         tether_eval(window, "document.getElementById('name').textContent = 'Guzma'");
-    } else if (len == 5 && !strncmp(data, "popup", 5)) {
+    } else if (!strcmp(data, "popup")) {
         tether popup = tether_new((tether_options) {
             .initial_width = 200,
             .initial_height = 100,
-            .minimum_width = 0,
-            .minimum_height = 0,
-            .fullscreen = false,
-            .maximized = false,
+            .minimum_width = 200,
+            .minimum_height = 100,
             .borderless = false,
             .debug = false,
             .handler = (tether_fn) {
@@ -46,8 +43,6 @@ void start(void *ctx) {
         .initial_height = 600,
         .minimum_width = 0,
         .minimum_height = 0,
-        .fullscreen = false,
-        .maximized = false,
         .borderless = false,
         .debug = true,
         .handler = (tether_fn) {

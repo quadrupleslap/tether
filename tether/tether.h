@@ -19,20 +19,19 @@ typedef struct tether_options {
            initial_height,
            minimum_width,
            minimum_height;
-    bool fullscreen,
-         maximized,
-         borderless,
+    bool borderless,
          debug;
-    tether_fn handler; // (size_t, const char *) -> ()
+    tether_fn handler; // (const char *) -> ()
 } tether_options;
 
 void tether_start(tether_fn cb); // (() -> ()) -> ()
 void tether_dispatch(tether_fn cb); // (() -> ()) -> ()
+void tether_exit(void);
 
 tether tether_new(tether_options opts);
 tether tether_clone(tether self);
 void tether_drop(tether self);
 
-void tether_eval(tether self, char *js);
-void tether_load(tether self, char *html);
+void tether_eval(tether self, const char *js);
+void tether_load(tether self, const char *html);
 void tether_close(tether self);

@@ -8,8 +8,6 @@
 // RANDOM NONSENSE
 // ===============
 
-int windows = 0;
-
 struct tether {
     GtkWindow *window;
     WebKitWebView *webview;
@@ -42,14 +40,6 @@ static void handler_dropped(void *ctx, GClosure *closure) {
     free(ctx);
 }
 
-static void window_destroyed(GtkWidget* widget, GtkWidget* window) {
-    (void)widget;
-    (void)window;
-
-    windows -= 1;
-    if (windows <= 0) gtk_main_quit();
-}
-
 void title_changed(GObject *webview, GParamSpec *spec, void *ctx) {
     (void)spec;
     (void)ctx;
@@ -64,17 +54,9 @@ void message_received(WebKitUserContentManager *manager, WebKitJavascriptResult 
 
     tether_fn cb = *(tether_fn *)ctx;
     JSCValue *val = webkit_javascript_result_get_js_value(result);
-    GBytes *bytes = jsc_value_to_string_as_bytes(val);
-    size_t message_length;
-    const char *message_data = g_bytes_get_data(bytes, &message_length);
-
-    ((void (*)(void *data, size_t len, const char *ptr))cb.call)(
-        cb.data,
-        message_length,
-        message_data
-    );
-
-    g_bytes_unref(bytes);
+    char *message = jsc_value_to_string(val);
+    ((void (*)(void *data, const char *ptr))cb.call)(cb.data, message);
+    g_free(message);
 }
 
 gboolean context_menu(WebKitWebView *wv, WebKitContextMenu *cm, GdkEvent *e, WebKitHitTestResult *htr, void *ctx) {
@@ -161,6 +143,10 @@ void tether_dispatch(tether_fn cb) {
     );
 }
 
+void tether_exit(void) {
+    gtk_main_quit();
+}
+
 tether tether_new(tether_options opts) {
     tether self = malloc(sizeof *self);
     assert(self);
@@ -178,15 +164,12 @@ tether tether_new(tether_options opts) {
     WebKitUserContentManager *manager = webkit_web_view_get_user_content_manager(webview);
     if (opts.debug) webkit_settings_set_enable_developer_extras(settings, TRUE);
 
-    // Quit the application when the last window is closed.
-    g_signal_connect(window, "destroy", G_CALLBACK(window_destroyed), NULL);
-
     // Update the window's title to match the document's title.
     g_signal_connect(webview, "notify::title", G_CALLBACK(title_changed), NULL);
 
     // Listen for messages.
     WebKitUserScript *script = webkit_user_script_new(
-        "window.tether = function (s) { window.webkit.messageHandlers.__tether.postMessage(s) }",
+        "window.tether = function (s) { window.webkit.messageHandlers.__tether.postMessage(s); }",
         WEBKIT_USER_CONTENT_INJECT_TOP_FRAME,
         WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
         NULL,
@@ -212,18 +195,15 @@ tether tether_new(tether_options opts) {
 
     // Show the window.
     gtk_widget_show_all(GTK_WIDGET(window));
-    if (opts.maximized) gtk_window_maximize(GTK_WINDOW(window));
-    if (opts.fullscreen) gtk_window_fullscreen(GTK_WINDOW(window));
 
     // Finish up.
     self->window = g_object_ref(window);
     self->webview = g_object_ref(webview);
-    windows += 1;
     return self;
 }
 
 tether tether_clone(tether self) {
-    tether new = malloc(sizeof *self);
+    tether new = malloc(sizeof *new);
     assert(new);
     new->window = g_object_ref(self->window);
     new->webview = g_object_ref(self->webview);
@@ -236,11 +216,11 @@ void tether_drop(tether self) {
     free(self);
 }
 
-void tether_eval(tether self, char *js) {
+void tether_eval(tether self, const char *js) {
     webkit_web_view_run_javascript(self->webview, js, NULL, NULL, NULL);
 }
 
-void tether_load(tether self, char *html) {
+void tether_load(tether self, const char *html) {
     webkit_web_view_load_html(self->webview, html, NULL);
 }
 
