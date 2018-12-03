@@ -1,7 +1,10 @@
 # macOS
 
-tether-cocoa.a:
-	echo 'TODO'
+tether-cocoa.a: tether-cocoa.o
+	ar rcs $@ $^
+
+tether-cocoa.o:
+	clang -c -ObjC -fobjc-arc -Wall -Wextra -DTETHER_COCOA tether.c -o $@
 
 # Windows
 
