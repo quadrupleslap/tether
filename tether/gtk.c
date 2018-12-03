@@ -59,6 +59,13 @@ void message_received(WebKitUserContentManager *manager, WebKitJavascriptResult 
     g_free(message);
 }
 
+static void window_destroyed(GtkWidget* widget, void *ctx) {
+    (void)widget;
+
+    tether_fn cb = *(tether_fn *)ctx;
+    ((void (*)(void *data))cb.call)(cb.data);
+}
+
 gboolean context_menu(WebKitWebView *wv, WebKitContextMenu *cm, GdkEvent *e, WebKitHitTestResult *htr, void *ctx) {
     (void)wv;
     (void)e;
@@ -158,6 +165,14 @@ tether tether_new(tether_options opts) {
     gtk_window_set_decorated(window, FALSE);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
+    // Tell the user when the window's been closed.
+    g_signal_connect(
+        window,
+        "destroy",
+        G_CALLBACK(window_destroyed),
+        box_function(opts.closed)
+    );
+
     // Create the web view.
     WebKitWebView *webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
     WebKitSettings *settings = webkit_web_view_get_settings(webview);
@@ -179,7 +194,7 @@ tether tether_new(tether_options opts) {
         manager,
         "script-message-received::__tether",
         G_CALLBACK(message_received),
-        box_function(opts.handler),
+        box_function(opts.message),
         handler_dropped,
         0
     );

@@ -21,7 +21,8 @@ typedef struct tether_options {
            minimum_height;
     bool borderless,
          debug;
-    tether_fn handler; // (const char *) -> ()
+    tether_fn message, // (const char *) -> ()
+              closed; // () -> ()
 } tether_options;
 
 void tether_start(tether_fn cb); // (() -> ()) -> ()

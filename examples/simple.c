@@ -23,8 +23,13 @@ void message(void *ctx, const char *data) {
             .minimum_height = 100,
             .borderless = false,
             .debug = false,
-            .handler = (tether_fn) {
+            .message = (tether_fn) {
                 .call = message,
+                .data = NULL,
+                .drop = noop
+            },
+            .closed = (tether_fn) {
+                .call = noop,
                 .data = NULL,
                 .drop = noop
             }
@@ -45,8 +50,13 @@ void start(void *ctx) {
         .minimum_height = 0,
         .borderless = false,
         .debug = true,
-        .handler = (tether_fn) {
+        .message = (tether_fn) {
             .call = message,
+            .data = NULL,
+            .drop = noop
+        },
+        .closed = (tether_fn) {
+            .call = noop,
             .data = NULL,
             .drop = noop
         }
