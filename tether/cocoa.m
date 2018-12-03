@@ -173,7 +173,7 @@ tether tether_new(tether_options opts) {
     [window setContentMinSize:NSMakeSize(opts.minimum_width, opts.minimum_height)];
     [window setReleasedWhenClosed:NO];
     [window center];
-    
+
     // Create the web view.
     WKWebViewConfiguration *config = [WKWebViewConfiguration new];
     WKPreferences *prefs = [config preferences];
