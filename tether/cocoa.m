@@ -40,9 +40,9 @@
     ((void (*)(void *data))closed.call)(closed.data);
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath 
-                      ofObject:(id)object 
-                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change 
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
                        context:(void *)context {
     (void)keyPath;
     (void)change;
