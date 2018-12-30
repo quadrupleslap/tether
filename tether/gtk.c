@@ -8,7 +8,7 @@
 // RANDOM NONSENSE
 // ===============
 
-struct tether {
+struct _tether {
     GtkWindow *window;
     WebKitWebView *webview;
 };
@@ -19,7 +19,7 @@ static int dispatch(void *ctx) {
     return G_SOURCE_REMOVE;
 }
 
-static tether_fn *box_function(tether_fn fun) {
+static tether_fn *box(tether_fn fun) {
     tether_fn *boxed = malloc(sizeof *boxed);
     assert(boxed);
     *boxed = fun;
@@ -40,7 +40,7 @@ static void handler_dropped(void *ctx, GClosure *closure) {
     free(ctx);
 }
 
-void title_changed(GObject *webview, GParamSpec *spec, void *ctx) {
+static void title_changed(GObject *webview, GParamSpec *spec, void *ctx) {
     (void)spec;
     (void)ctx;
 
@@ -49,7 +49,7 @@ void title_changed(GObject *webview, GParamSpec *spec, void *ctx) {
     if (GTK_IS_WINDOW(window)) gtk_window_set_title(GTK_WINDOW(window), title);
 }
 
-void message_received(WebKitUserContentManager *manager, WebKitJavascriptResult *result, void *ctx) {
+static void message_received(WebKitUserContentManager *manager, WebKitJavascriptResult *result, void *ctx) {
     (void)manager;
 
     tether_fn cb = *(tether_fn *)ctx;
@@ -145,7 +145,7 @@ void tether_dispatch(tether_fn cb) {
     g_idle_add_full(
         G_PRIORITY_HIGH_IDLE,
         dispatch,
-        box_function(cb),
+        box(cb),
         starter_dropped
     );
 }
@@ -166,11 +166,13 @@ tether tether_new(tether_options opts) {
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
     // Tell the user when the window's been closed.
-    g_signal_connect(
+    g_signal_connect_data(
         window,
         "destroy",
         G_CALLBACK(window_destroyed),
-        box_function(opts.closed)
+        box(opts.closed),
+        handler_dropped,
+        0
     );
 
     // Create the web view.
@@ -194,7 +196,7 @@ tether tether_new(tether_options opts) {
         manager,
         "script-message-received::__tether",
         G_CALLBACK(message_received),
-        box_function(opts.message),
+        box(opts.message),
         handler_dropped,
         0
     );

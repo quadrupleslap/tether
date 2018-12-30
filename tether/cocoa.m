@@ -58,7 +58,7 @@
 }
 @end
 
-struct tether {
+struct _tether {
     CFTypeRef window;
     CFTypeRef webview;
 };

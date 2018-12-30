@@ -1,23 +1,23 @@
-# macOS
+# Cocoa (macOS)
 
 tether-cocoa.a: tether-cocoa.o
 	ar rcs $@ $^
 
-tether-cocoa.o:
-	clang -c -ObjC -fobjc-arc -Wall -Wextra -DTETHER_COCOA tether.c -o $@
+tether-cocoa.o: cocoa.m
+	clang -c -ObjC -fobjc-arc -Wall -Wextra -o $@ $^
 
-# Windows
+# WinAPI (Windows)
 
-tether-windows.lib:
+tether-winapi.lib:
 	echo 'TODO'
 
-# Linux
+# GTK (Linux)
 
 tether-gtk.a: tether-gtk.o
 	ar rcs $@ $^
 
-tether-gtk.o:
-	gcc -c -Wall -Wextra `pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.0` tether.c -o $@
+tether-gtk.o: gtk.c
+	gcc -c -Wall -Wextra `pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.0` -o $@ $^
 
 # Nuking Things
 

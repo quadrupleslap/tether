@@ -1,15 +1,17 @@
-// This library supports multiple platforms.
-//
-// - Webkit2GTK is the default.
-// - Win32 can be enabled with the `TETHER_WIN32` flag.
-// - macOS can be enabled with the `TETHER_MACOS` flag.
-
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef struct tether *tether;
+//TODO: Add keyboard shortcuts.
+//TODO: Add clipboard stuff.
+//TODO: Add context menus.
 
-typedef struct tether_fn {
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct _tether *tether;
+
+typedef struct _tether_fn {
     void *call, *data;
     void (*drop)(void *data);
 } tether_fn;
@@ -36,3 +38,7 @@ void tether_drop(tether self);
 void tether_eval(tether self, const char *js);
 void tether_load(tether self, const char *html);
 void tether_close(tether self);
+
+#ifdef __cplusplus
+}
+#endif
