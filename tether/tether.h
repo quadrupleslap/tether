@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+//TODO: Thoroughly check all the platforms for memory leaks.
 //TODO: Add keyboard shortcuts.
 //TODO: Add context menus.
 
