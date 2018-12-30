@@ -2,7 +2,6 @@
 #include <stddef.h>
 
 //TODO: Add keyboard shortcuts.
-//TODO: Add clipboard stuff.
 //TODO: Add context menus.
 
 #ifdef __cplusplus
