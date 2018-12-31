@@ -4,18 +4,12 @@
 
 tether window;
 
-void drop(void *ctx) {
-    printf("%s dropped\n", (const char *)ctx);
-}
-
 void closed(void *ctx) {
-    (void)ctx;
-    printf("window closed\n");
+    printf("%s closed\n", (char *)ctx);
 }
 
 void message(void *ctx, const char *data) {
-    (void)ctx;
-    printf("%s received\n", data);
+    printf("%s received %s\n", (char *)ctx, data);
 
     if (!strcmp(data, "ready")) {
         tether_eval(window, "document.getElementById('name').textContent = 'Guzma'");
@@ -27,26 +21,17 @@ void message(void *ctx, const char *data) {
             .minimum_height = 100,
             .borderless = false,
             .debug = false,
-            .message = (tether_fn) {
-                .call = message,
-                .data = "popup/message",
-                .drop = drop
-            },
-            .closed = (tether_fn) {
-                .call = closed,
-                .data = "popup/closed",
-                .drop = drop
-            }
+            .data = "popup",
+            .message = message,
+            .closed = closed
         });
 
+        tether_title(popup, "Something");
         tether_load(popup, "get a WINDOW so complicated");
-        tether_drop(popup);
     }
 }
 
-void start(void *ctx) {
-    (void)ctx;
-
+void start(void) {
     window = tether_new((tether_options) {
         .initial_width = 800,
         .initial_height = 600,
@@ -54,20 +39,13 @@ void start(void *ctx) {
         .minimum_height = 0,
         .borderless = false,
         .debug = true,
-        .message = (tether_fn) {
-            .call = message,
-            .data = "main/message",
-            .drop = drop
-        },
-        .closed = (tether_fn) {
-            .call = closed,
-            .data = "main/closed",
-            .drop = drop
-        }
+        .data = "main",
+        .message = message,
+        .closed = closed
     });
 
+    tether_title(window, "The future is now!");
     tether_load(window, "\
-        <title>Hello</title>\
         <script defer>window.tether('ready')</script>\
         Hello, <b>world</b>! It's your boy, <span id=name></span>!\
         <button onclick=\"window.tether('popup')\">Popup</button>\
@@ -75,11 +53,6 @@ void start(void *ctx) {
 }
 
 int main(void) {
-    tether_start((tether_fn) {
-        .call = start,
-        .data = "start",
-        .drop = drop,
-    });
-
+    tether_start(start);
     return 0;
 }

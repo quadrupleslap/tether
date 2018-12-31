@@ -1,21 +1,20 @@
+// This library supports multiple platforms.
+//
+// - Webkit2GTK is the default.
+// - Win32 can be enabled with the `TETHER_WIN32` flag.
+// - macOS can be enabled with the `TETHER_MACOS` flag.
+
 #include <stdbool.h>
 #include <stddef.h>
-
-//TODO: Thoroughly check all the platforms for memory leaks.
-//TODO: Add keyboard shortcuts.
-//TODO: Add context menus.
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+// A reference to a window.
 typedef struct _tether *tether;
 
-typedef struct _tether_fn {
-    void *call, *data;
-    void (*drop)(void *data);
-} tether_fn;
-
+// Configuration options for a window.
 typedef struct tether_options {
     size_t initial_width,
            initial_height,
@@ -23,20 +22,36 @@ typedef struct tether_options {
            minimum_height;
     bool borderless,
          debug;
-    tether_fn message, // (const char *) -> ()
-              closed; // () -> ()
+    // The data to pass to event handlers.
+    void *data;
+    // The window received a message via `window.tether(string)`.
+    void (*message)(void *data, const char *message);
+    // The window was closed, and its resources have all been released.
+    void (*closed)(void *data);
 } tether_options;
 
-void tether_start(tether_fn cb); // (() -> ()) -> ()
-void tether_dispatch(tether_fn cb); // (() -> ()) -> ()
+// Start the main loop and call the given function.
+//
+// This function should be called on the main thread, and at most once. It
+// should be called before any other `tether` function is called.
+void tether_start(void (*func)(void));
+// Schedule a function to be called on the main thread.
+//
+// All the `tether` functions should only be called on the main thread.
+void tether_dispatch(void *data, void (*func)(void *data));
+// Stop the main loop as gracefully as possible.
 void tether_exit(void);
 
+// Open a new window with the given options.
 tether tether_new(tether_options opts);
-tether tether_clone(tether self);
-void tether_drop(tether self);
 
+// Eventually run the given script.
 void tether_eval(tether self, const char *js);
+// Eventually display the given HTML.
 void tether_load(tether self, const char *html);
+// Set the window's title.
+void tether_title(tether self, const char *title);
+// Eventually close the window.
 void tether_close(tether self);
 
 #ifdef __cplusplus

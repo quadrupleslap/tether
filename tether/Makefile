@@ -8,8 +8,11 @@ tether-cocoa.o: cocoa.m
 
 # WinAPI (Windows)
 
-tether-winapi.lib:
-	echo 'TODO'
+tether-winapi.lib: tether-winapi.obj
+	lib /out:$@ $^
+
+tether-winapi.obj: winapi.cpp
+	cl /c /EHsc /std:c++17 /await /Fo$@ $^
 
 # GTK (Linux)
 
@@ -22,4 +25,4 @@ tether-gtk.o: gtk.c
 # Nuking Things
 
 clean:
-	rm -f *.o *.a *.lib
+	rm -f *.o *.a *.lib *.obj

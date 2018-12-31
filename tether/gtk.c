@@ -219,20 +219,6 @@ tether tether_new(tether_options opts) {
     return self;
 }
 
-tether tether_clone(tether self) {
-    tether new = malloc(sizeof *new);
-    assert(new);
-    new->window = g_object_ref(self->window);
-    new->webview = g_object_ref(self->webview);
-    return new;
-}
-
-void tether_drop(tether self) {
-    g_object_unref(self->window);
-    g_object_unref(self->webview);
-    free(self);
-}
-
 void tether_eval(tether self, const char *js) {
     webkit_web_view_run_javascript(self->webview, js, NULL, NULL, NULL);
 }
