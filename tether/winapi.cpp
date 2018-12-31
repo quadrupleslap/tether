@@ -1,3 +1,5 @@
+//TODO: Windows currently doesn't show any context menu.
+
 #define WIN32_LEAN_AND_MEAN
 #include <SDKDDKVer.h>
 #include <objbase.h>

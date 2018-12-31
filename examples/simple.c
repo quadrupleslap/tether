@@ -6,6 +6,7 @@ tether window;
 
 void closed(void *ctx) {
     printf("%s closed\n", (char *)ctx);
+    if (!strcmp((char *)ctx, "main")) tether_exit();
 }
 
 void message(void *ctx, const char *data) {

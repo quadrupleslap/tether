@@ -1,9 +1,3 @@
-// This library supports multiple platforms.
-//
-// - Webkit2GTK is the default.
-// - Win32 can be enabled with the `TETHER_WIN32` flag.
-// - macOS can be enabled with the `TETHER_MACOS` flag.
-
 #include <stdbool.h>
 #include <stddef.h>
 
