@@ -1,6 +1,16 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+//TODO: Custom context menus.
+//TODO: System tray integration.
+
+//TODO: Make sure the HTML5 Notification API works.
+//TODO: Make sure the HTML5 Fullscreen API works.
+//TODO: Make sure LocalStorage works.
+//TODO: Make sure IndexedDB works.
+//TODO: Make sure alert dialogs work.
+//TODO: Make sure <a download> and <input type=file> both work.
+
 #ifdef __cplusplus
 extern "C" {
 #endif
