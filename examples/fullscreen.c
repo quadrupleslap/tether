@@ -20,7 +20,7 @@ void start(void) {
     tether_load(
         window,
         "<button onclick='requestFullscreen(latin)'>Test Fullscreen</button>"
-        "<p id=latin>Caecilius est in horto.</p>"
+        "<p id=latin style='background:#0F0'>Caecilius est in horto.</p>"
         "<script>"
         "function requestFullscreen(element) {"
         "    if (element.requestFullscreen) {"
