@@ -1,5 +1,3 @@
-//TODO: macOS currently doesn't show any context menu.
-
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
@@ -171,10 +169,15 @@ tether tether_new(tether_options opts) {
     // Create and attach the delegate.
     RKDelegate *delegate = [[RKDelegate alloc] initWithOptions:opts tether:self];
     [manager addScriptMessageHandler:delegate name:@"__tether"];
-    [manager addUserScript:[[WKUserScript alloc] initWithSource:@"window.tether = function (s) { window.webkit.messageHandlers.__tether.postMessage(s); };\
-                                                                  document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });"
+    [manager addUserScript:[[WKUserScript alloc] initWithSource:@"window.tether = function (s) { window.webkit.messageHandlers.__tether.postMessage(s); };"
                                                   injectionTime:WKUserScriptInjectionTimeAtDocumentStart
                                                forMainFrameOnly:YES]];
+    if (!opts.debug) {
+        //TODO: macOS currently doesn't show any context menu.
+        [manager addUserScript:[[WKUserScript alloc] initWithSource:@"document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });"
+                                                      injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                                                   forMainFrameOnly:NO]];
+    }
     [window setDelegate:delegate];
 
     // Show things.
