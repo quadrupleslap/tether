@@ -40,14 +40,14 @@ void slave_new(void) {
 
 void master_message(void *data, const char *message) {
     (void)data;
-    if (*message) {
-        tether_exit();
-    } else {
-        slave_new();
-    }
+    (void)message;
+    slave_new();
 }
 
-void master_closed(void *data) { (void)data; }
+void master_closed(void *data) {
+    (void)data;
+    tether_exit();
+}
 
 void master_new(void) {
     tether window = tether_new((tether_options) {
@@ -64,14 +64,12 @@ void master_new(void) {
 
     tether_title(window, "Master");
     tether_load(window, "<script>\
-        let slaves = 0;\
-        (function go() {\
+        function go(slaves) {\
             window.tether('');\
-            slaves += 1;\
-            if (slaves < 500) setTimeout(go, 50);\
-            else window.tether('_');\
-        })();\
-    </script>");
+            if (slaves < 50) setTimeout(() => go(slaves + 1), 50);\
+        }\
+    </script>\
+    <button onclick='go(0)'>Stress!</button>");
 }
 
 // MAIN

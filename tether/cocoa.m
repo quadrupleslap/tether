@@ -1,7 +1,14 @@
+//TODO: macOS currently doesn't show any context menu.
+
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 
 #include "tether.h"
+
+struct _tether {
+    CFTypeRef window;
+    CFTypeRef webview;
+};
 
 @interface RKWindow : NSWindow
 @end
@@ -11,17 +18,18 @@
 - (BOOL)canBecomeMainWindow { return YES; }
 @end
 
-@interface RKHandler : NSObject <NSWindowDelegate, WKScriptMessageHandler>
+@interface RKDelegate : NSObject <NSWindowDelegate, WKScriptMessageHandler>
 @end
 
-@implementation RKHandler {
-    tether_fn message, closed;
+@implementation RKDelegate {
+    tether_options opts;
+    tether handle;
 }
 
-- (id)initWithMessage:(tether_fn)a
-               closed:(tether_fn)b {
-    message = a;
-    closed = b;
+- (id)initWithOptions:(tether_options)x
+               tether:(tether)y {
+    opts = x;
+    handle = y;
     return self;
 }
 
@@ -31,39 +39,22 @@
 
     id body = [scriptMessage body];
     if (![body isKindOfClass:[NSString class]]) return;
-    ((void (*)(void *data, const char *ptr))message.call)(message.data, [body UTF8String]);
+    opts.message(opts.data, [body UTF8String]);
 }
 
 - (void)windowWillClose:(NSNotification *)notification {
     (void)notification;
 
-    ((void (*)(void *data))closed.call)(closed.data);
-}
+    WKWebView *wv = (__bridge WKWebView *)handle->webview;
+    WKUserContentController *ucc = [[wv configuration] userContentController];
+    [ucc removeScriptMessageHandlerForName:@"__tether"];
 
-- (void)observeValueForKeyPath:(NSString *)keyPath
-                      ofObject:(id)object
-                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
-                       context:(void *)context {
-    (void)keyPath;
-    (void)change;
-    (void)context;
-
-    [[object window] setTitle:[object title]];
-}
-
-- (void)dealloc {
-    //TODO: This doesn't run, and I have NO idea why.
-    message.drop(message.data);
-    closed.drop(closed.data);
+    opts.closed(opts.data);
+    free(handle);
 }
 @end
 
-struct _tether {
-    CFTypeRef window;
-    CFTypeRef webview;
-};
-
-void tether_start(tether_fn cb) {
+void tether_start(void (*func)(void)) {
     NSApplication *app = [NSApplication sharedApplication];
     [app setActivationPolicy:NSApplicationActivationPolicyRegular];
 
@@ -136,18 +127,13 @@ void tether_start(tether_fn cb) {
     // MAIN MENU
     [app setMainMenu:menu];
 
-    ((void (*)(void *data))cb.call)(cb.data);
-    cb.drop(cb.data);
-
+    func();
     [app activateIgnoringOtherApps:YES];
     [app run];
 }
 
-void tether_dispatch(tether_fn cb) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        ((void (*)(void *data))cb.call)(cb.data);
-        cb.drop(cb.data);
-    });
+void tether_dispatch(void *data, void (*func)(void *data)) {
+    dispatch_async(dispatch_get_main_queue(), ^{ func(data); });
 }
 
 void tether_exit(void) {
@@ -182,41 +168,24 @@ tether tether_new(tether_options opts) {
     if (opts.debug) [prefs setValue:@YES forKey:@"developerExtrasEnabled"];
     WKWebView *webview = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:config];
 
-    // Create and attach the handler.
-    RKHandler *handler = [[RKHandler alloc] initWithMessage:opts.message closed:opts.closed];
-    [manager addScriptMessageHandler:handler name:@"__tether"];
-    [webview addObserver:handler forKeyPath:@"title" options:0 context:nil];
-    //TODO: We want to be more granular with the context menus, but WebKit doesn't support that yet.
+    // Create and attach the delegate.
+    RKDelegate *delegate = [[RKDelegate alloc] initWithOptions:opts tether:self];
+    [manager addScriptMessageHandler:delegate name:@"__tether"];
     [manager addUserScript:[[WKUserScript alloc] initWithSource:@"window.tether = function (s) { window.webkit.messageHandlers.__tether.postMessage(s); };\
                                                                   document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });"
                                                   injectionTime:WKUserScriptInjectionTimeAtDocumentStart
                                                forMainFrameOnly:YES]];
-    [window setDelegate:handler];
+    [window setDelegate:delegate];
 
-    // Attach the web view to the window.
+    // Show things.
     [window setContentView:webview];
-
-    // Show the window.
     [window makeKeyAndOrderFront:nil];
 
-    // Finish up.
-    self->window = (__bridge_retained void *)window;
-    self->webview = (__bridge_retained void *)webview;
+    // Note that we don't use __bridge_retain, so these are essentially
+    // extremely dangerous weak references.
+    self->window = (__bridge void *)window;
+    self->webview = (__bridge void *)webview;
     return self;
-}
-
-tether tether_clone(tether self) {
-    tether new = malloc(sizeof *new);
-    assert(new);
-    new->window = CFRetain(self->window);
-    new->webview = CFRetain(self->webview);
-    return new;
-}
-
-void tether_drop(tether self) {
-    CFRelease(self->window);
-    CFRelease(self->webview);
-    free(self);
 }
 
 void tether_eval(tether self, const char *js) {
@@ -227,6 +196,11 @@ void tether_eval(tether self, const char *js) {
 void tether_load(tether self, const char *html) {
     WKWebView *wv = (__bridge WKWebView *)self->webview;
     [wv loadHTMLString:[NSString stringWithUTF8String:html] baseURL:nil];
+}
+
+void tether_title(tether self, const char *title) {
+    NSWindow *w = (__bridge NSWindow *)self->window;
+    [w setTitle:[NSString stringWithUTF8String:title]];
 }
 
 void tether_close(tether self) {
