@@ -88,6 +88,48 @@ struct _tether {
             message(data, s.c_str());
         });
 
+		bool saved_fullscreen = false;
+		RECT saved_rect;
+		LONG saved_style;
+		webview.ContainsFullScreenElementChanged([=](auto const &sender, auto const &args) mutable {
+			bool fullscreen = sender.ContainsFullScreenElement();
+			if (fullscreen = saved_fullscreen) return;
+			saved_fullscreen = fullscreen;
+
+			if (sender.ContainsFullScreenElement()) {
+				// Save the window position and size and stuff so we can restore it later.
+				GetWindowRect(hwnd, &saved_rect);
+				saved_style = GetWindowLong(hwnd, GWL_STYLE);
+				// Enter fullscreen mode.
+				SetWindowLong(hwnd, GWL_STYLE, saved_style & ~(WS_CAPTION | WS_THICKFRAME));
+				MONITORINFO mi;
+				mi.cbSize = sizeof mi;
+				GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi);
+				RECT screen_rect = mi.rcMonitor;
+				SetWindowPos(
+					hwnd,
+					HWND_TOP,
+					screen_rect.left,
+					screen_rect.top,
+					screen_rect.right - screen_rect.left,
+					screen_rect.bottom - screen_rect.top,
+					SWP_FRAMECHANGED
+				);
+			} else {
+				// Exit fullscreen mode, restoring the window's properties.
+				SetWindowLong(hwnd, GWL_STYLE, saved_style);
+				SetWindowPos(
+					hwnd,
+					HWND_TOP,
+					saved_rect.left,
+					saved_rect.top,
+					saved_rect.right - saved_rect.left,
+					saved_rect.bottom - saved_rect.top,
+					SWP_FRAMECHANGED
+				);
+			}
+		});
+
         ShowWindow(hwnd, SW_SHOW);
         UpdateWindow(hwnd);
     }
