@@ -2,7 +2,6 @@
 #include <stddef.h>
 
 //TODO: Make sure the HTML5 Fullscreen API works.
-//TODO: Focus window (makeKeyAndOrderFront / SetActiveWindow / gtk_window_present).
 //TODO: File picker.
 //TODO: Notifications (make it a superset of the HTML5 API so it can be shimmed).
 //TODO: System tray integration.
@@ -46,13 +45,17 @@ void tether_exit(void);
 // Open a new window with the given options.
 tether tether_new(tether_options opts);
 
-// Eventually run the given script.
+// Run the given script.
 void tether_eval(tether self, const char *js);
-// Eventually display the given HTML.
+// Display the given HTML.
 void tether_load(tether self, const char *html);
 // Set the window's title.
 void tether_title(tether self, const char *title);
-// Eventually close the window.
+// Focus the window, and move it in front of the other windows.
+//
+// This function will not steal the focus from other applications.
+void tether_focus(tether self);
+// Close the window.
 void tether_close(tether self);
 
 #ifdef __cplusplus

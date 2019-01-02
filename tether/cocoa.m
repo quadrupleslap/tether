@@ -206,6 +206,11 @@ void tether_title(tether self, const char *title) {
     [w setTitle:[NSString stringWithUTF8String:title]];
 }
 
+void tether_focus(tether self) {
+    NSWindow *w = (__bridge NSWindow *)self->window;
+    [w makeKeyAndOrderFront:nil];
+}
+
 void tether_close(tether self) {
     NSWindow *w = (__bridge NSWindow *)self->window;
     [w close];

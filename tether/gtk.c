@@ -220,6 +220,10 @@ void tether_title(tether self, const char *title) {
     gtk_window_set_title(self->window, title);
 }
 
+void tether_focus(tether self) {
+    gtk_window_present(self->window);
+}
+
 void tether_close(tether self) {
     gtk_window_close(self->window);
 }

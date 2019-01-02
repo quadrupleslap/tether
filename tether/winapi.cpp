@@ -248,6 +248,10 @@ void tether_title(tether self, const char *title) {
     SetWindowText(self->hwnd, title);
 }
 
+void tether_focus(tether self) {
+    SetActiveWindow(self->hwnd);
+}
+
 void tether_close(tether self) {
     PostMessage(self->hwnd, WM_CLOSE, 0, 0);
 }
