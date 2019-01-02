@@ -1,12 +1,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-//TODO: Custom context menus.
-//TODO: System tray integration.
-//TODO: File picker.
-//TODO: Focus window (makeKeyAndOrderFront / SetActiveWindow / gtk_window_present).
-//TODO: Notifications (make it a superset of the HTML5 API so it can be shimmed).
 //TODO: Make sure the HTML5 Fullscreen API works.
+//TODO: Focus window (makeKeyAndOrderFront / SetActiveWindow / gtk_window_present).
+//TODO: File picker.
+//TODO: Notifications (make it a superset of the HTML5 API so it can be shimmed).
+//TODO: System tray integration.
+//TODO: Custom context menus.
 
 #ifdef __cplusplus
 extern "C" {
