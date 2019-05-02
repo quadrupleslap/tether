@@ -22,7 +22,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else if cfg!(target_os = "windows") {
         //TODO: Windows dependencies.
     } else if cfg!(target_os = "macos") {
-        //TODO: macOS dependencies.
+        println!("cargo:rustc-link-lib=framework=Cocoa");
+        println!("cargo:rustc-link-lib=framework=WebKit");
     } else {
         panic!("unsupported platform");
     }
