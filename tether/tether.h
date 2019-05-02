@@ -3,7 +3,7 @@
 
 //TODO: Make sure the HTML5 Fullscreen API works.
 //TODO: File picker.
-//TODO: Notifications (make it a superset of the HTML5 API so it can be shimmed).
+//TODO: Implement the HTML5 Notification API.
 //TODO: System tray integration.
 //TODO: Custom context menus.
 

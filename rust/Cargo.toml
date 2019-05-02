@@ -1,0 +1,12 @@
+[package]
+name = "tether"
+version = "0.1.0"
+authors = ["Ram Kaniyur <quadrupleslap@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+log = "0.4"
+
+[build-dependencies]
+bindgen = "0.49"
+pkg-config = "0.3"
