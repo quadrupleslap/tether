@@ -18,7 +18,7 @@ then this is the library for you!
     - Linux — GTK and Webkit2GTK
     - Windows — Visual Studio
 2. Add this library to your `Cargo.toml`.
-3. Read [an example](rust/examples/hello.rs) and [the documentation](https://docs.rs/tether).
+3. Read [an example](examples/hello.rs) and [the documentation](https://docs.rs/tether).
 
 ### Warning
 
