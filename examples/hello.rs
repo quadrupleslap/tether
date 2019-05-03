@@ -7,19 +7,30 @@ const HTML: &'static str = "
         has been a pleasant one.
     </p>
     <button onclick=\"tether('Bzzz.')\">Click here!</button>
+    <p>
+        The button has been clicked <span id=\"click-count\">0</span> times.
+    </p>
 ";
 
 fn start() {
-    let window = Window::with_handler(Handler);
+    let window = Window::with_handler(Handler(0));
     window.title("Hello, world!");
     window.load(HTML);
 }
 
-struct Handler;
+struct Handler(pub usize);
 
 impl tether::Handler for Handler {
-    fn handle(&mut self, msg: &str) {
+    fn handle(&mut self, window: Window, msg: &str) {
         println!("{}", msg);
+
+        self.0 += 1;
+        window.eval(format!(
+            "
+                document.getElementById('click-count').textContent = {};
+            ",
+            self.0,
+        ));
     }
 }
 
