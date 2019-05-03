@@ -1,5 +1,3 @@
-a.out
-
-/rust/target
+/target
 **/*.rs.bk
 Cargo.lock

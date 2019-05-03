@@ -5,9 +5,9 @@ use std::process::Command;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_path = PathBuf::from(env::var("OUT_DIR")?);
     let rust_path = env::current_dir()?;
-    let tether_path = rust_path.join("../tether");
+    let native_path = rust_path.join("native");
 
-    env::set_current_dir(&tether_path)?;
+    env::set_current_dir(&native_path)?;
 
     // Link any platform-specific dependencies.
 
@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .probe("gtk+-3.0")?;
 
         pkg_config::Config::new()
-            .atleast_version("2.4")
+            .atleast_version("2.8")
             .probe("webkit2gtk-4.0")?;
     } else if cfg!(target_os = "windows") {
         println!("cargo:rustc-link-lib=dylib=ole32");
@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Link the library.
 
-    println!("cargo:rustc-link-search=native={}", tether_path.display());
+    println!("cargo:rustc-link-search=native={}", native_path.display());
     println!("cargo:rustc-link-lib=static=tether");
 
     // Generate the bindings to the library.
