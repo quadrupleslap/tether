@@ -1,3 +1,7 @@
+#![deny(missing_docs)]
+
+//! Windows that are web views.
+
 use log::error;
 use std::cell::{Cell, RefCell};
 use std::ffi::{c_void, CStr, CString};
@@ -7,7 +11,12 @@ thread_local! {
     static INITIALIZED: Cell<bool> = Cell::new(false);
 }
 
+/// An event handler; you probably want to implement one.
+///
+/// - When the webpage calls `window.tether`, the message is passed to `handle`.
+/// - The handler is dropped when the window is closed.
 pub trait Handler: 'static {
+    /// The webpage called `window.tether` with the given string.
     fn handle(&mut self, message: &str);
 }
 
@@ -18,6 +27,7 @@ impl<F: FnMut(&str) + 'static> Handler for F {
 }
 
 #[derive(Clone)]
+/// A window, which may or may not be open.
 pub struct Window {
     data: Data,
 }
@@ -25,6 +35,7 @@ pub struct Window {
 type Data = Rc<RefCell<Option<(raw::tether, Box<dyn Handler>)>>>;
 
 impl Window {
+    /// Make a new window with the given options.
     pub fn new(opts: Options) -> Self {
         assert_initialized();
 
@@ -73,6 +84,7 @@ impl Window {
         Self { data }
     }
 
+    /// Make a new window with the default options and the given handler.
     pub fn with_handler(handler: impl Handler) -> Self {
         Self::new(Options {
             handler: Some(Box::new(handler)),
@@ -80,6 +92,7 @@ impl Window {
         })
     }
 
+    /// Evaluate the given JavaScript asynchronously.
     pub fn eval<I: Into<String>>(&self, s: I) {
         if let Some(ref mut data) = *self.data.borrow_mut() {
             let s = string_to_cstring(s);
@@ -89,6 +102,7 @@ impl Window {
         }
     }
 
+    /// Load the given HTML asynchronously.
     pub fn load<I: Into<String>>(&self, s: I) {
         if let Some(ref mut data) = *self.data.borrow_mut() {
             let s = string_to_cstring(s);
@@ -98,6 +112,7 @@ impl Window {
         }
     }
 
+    /// Set this window's title to the given string.
     pub fn title<I: Into<String>>(&self, s: I) {
         if let Some(ref mut data) = *self.data.borrow_mut() {
             let s = string_to_cstring(s);
@@ -107,6 +122,7 @@ impl Window {
         }
     }
 
+    /// Focus this window above the other windows.
     pub fn focus(&self) {
         if let Some(ref mut data) = *self.data.borrow_mut() {
             unsafe {
@@ -115,6 +131,7 @@ impl Window {
         }
     }
 
+    /// Close this window.
     pub fn close(&self) {
         if let Some(ref mut data) = *self.data.borrow_mut() {
             unsafe {
@@ -130,22 +147,26 @@ impl Default for Window {
     }
 }
 
+/// The window options.
+///
+/// Note that these are mostly *suggestions* rather than *requirements*.
 pub struct Options {
+    /// The initial window width in pixels.
     pub initial_width: usize,
+    /// The initial window height in pixels.
     pub initial_height: usize,
+    /// The minimum window width in pixels.
     pub minimum_width: usize,
+    /// The minimum window height in pixels.
     pub minimum_height: usize,
 
+    /// Whether to draw the title bar and stuff like that.
     pub borderless: bool,
+    /// I'm not entirely sure what enabling this does.
     pub debug: bool,
 
+    /// The window's handler.
     pub handler: Option<Box<dyn Handler>>,
-}
-
-impl Options {
-    pub fn build(self) -> Window {
-        Window::new(self)
-    }
 }
 
 impl Default for Options {
@@ -164,6 +185,11 @@ impl Default for Options {
     }
 }
 
+/// Initialize things; call this first.
+///
+/// By calling this function, you're promising us that you haven't called it
+/// before, and that this is the main thread. The provided callback should
+/// contain your "real" main function.
 pub unsafe fn start(cb: fn()) {
     static mut INIT: Option<fn()> = None;
     INIT = Some(cb);
@@ -179,6 +205,7 @@ pub unsafe fn start(cb: fn()) {
     raw::tether_start(Some(init));
 }
 
+/// Terminate the application as gracefully as possible.
 pub fn exit() {
     assert_initialized();
 
@@ -187,6 +214,7 @@ pub fn exit() {
     }
 }
 
+/// Run the given function on the main thread.
 pub fn dispatch<F: FnOnce() + Send>(f: F) {
     assert_initialized();
 
