@@ -3,7 +3,13 @@
 [![Cargo](https://img.shields.io/crates/v/tether.svg)](https://crates.io/crates/tether)
 [![Docs.rs](https://docs.rs/tether/badge.svg)](https://docs.rs/tether)
 
-Open a window that consists entirely of a single web view.
+If you're…
+
+- writing a C or Rust application,
+- familiar with HTML, and
+- want to painlessly add a cross-platform GUI,
+
+then this is the library for you!
 
 ## Getting Started
 
@@ -12,7 +18,7 @@ Open a window that consists entirely of a single web view.
     - Linux — GTK and Webkit2GTK
     - Windows — Visual Studio
 2. Add this library to your `Cargo.toml`.
-3. Read over [an example](rust/examples/hello.rs).
+3. Read [an example](rust/examples/hello.rs) and [the documentation](https://docs.rs/tether).
 
 ### Warning
 
