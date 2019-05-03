@@ -5,7 +5,7 @@
 ifeq ($(OS), Windows_NT)
 
 tether: tether-winapi.lib
-	TODO: WINDOWS
+	copy tether-winapi.lib tether.lib
 
 else ifeq ($(shell uname), Linux)
 
@@ -33,7 +33,7 @@ tether-winapi.lib: tether-winapi.obj
 	lib /out:$@ $^
 
 tether-winapi.obj: winapi.cpp
-	cl /c /EHsc /std:c++17 /await /Fo$@ $^
+	clang-cl /c /EHsc /std:c++17 /W4 /WX /Fo$@ $^
 
 # Linux
 
@@ -41,7 +41,7 @@ tether-gtk.a: tether-gtk.o
 	ar rcs $@ $^
 
 tether-gtk.o: gtk.c
-	gcc -c -Wall -Wextra `pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.0` -o $@ $^
+	clang -c -Wall -Wextra `pkg-config --cflags --libs gtk+-3.0 webkit2gtk-4.0` -o $@ $^
 
 # Nuking Things
 

@@ -1,9 +1,9 @@
 //TODO: Windows currently doesn't show any context menu.
 
 #define WIN32_LEAN_AND_MEAN
-#include <SDKDDKVer.h>
+#include <sdkddkver.h>
 #include <objbase.h>
-#include <windows.h>
+#include <Windows.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Web.UI.Interop.h>
 
@@ -83,17 +83,17 @@ struct _tether {
         webview.AddInitializeScript(L"window.tether = function (s) { window.external.notify(s); };");
         auto data = opts.data;
         auto message = opts.message;
-        webview.ScriptNotify([=](auto const& sender, auto const& args) {
+        webview.ScriptNotify([=](auto const&, auto const& args) {
             std::string s = winrt::to_string(args.Value());
             message(data, s.c_str());
         });
 
 		bool saved_fullscreen = false;
 		RECT saved_rect;
-		LONG saved_style;
-		webview.ContainsFullScreenElementChanged([=](auto const &sender, auto const &args) mutable {
+		LONG saved_style = -1;
+		webview.ContainsFullScreenElementChanged([=](auto const &sender, auto const &) mutable {
 			bool fullscreen = sender.ContainsFullScreenElement();
-			if (fullscreen = saved_fullscreen) return;
+			if (fullscreen == saved_fullscreen) return;
 			saved_fullscreen = fullscreen;
 
 			if (sender.ContainsFullScreenElement()) {
@@ -194,7 +194,7 @@ void tether_start(void (*func)(void)) {
 
     MSG msg;
     BOOL res;
-    while (res = GetMessage(&msg, nullptr, 0, 0)) {
+    while ((res = GetMessage(&msg, nullptr, 0, 0))) {
         if (res == -1) break;
 
         if (msg.hwnd) {
@@ -212,8 +212,6 @@ void tether_start(void (*func)(void)) {
                 break;
         }
     }
-
-    WEBVIEWS.Terminate();
 }
 
 void tether_dispatch(void *data, void (*func)(void *data)) {

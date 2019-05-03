@@ -20,7 +20,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .atleast_version("2.4")
             .probe("webkit2gtk-4.0")?;
     } else if cfg!(target_os = "windows") {
-        //TODO: Windows dependencies.
+        println!("cargo:rustc-link-lib=dylib=ole32");
+        println!("cargo:rustc-link-lib=dylib=user32");
+        println!("cargo:rustc-link-lib=dylib=windowsapp");
     } else if cfg!(target_os = "macos") {
         println!("cargo:rustc-link-lib=framework=Cocoa");
         println!("cargo:rustc-link-lib=framework=WebKit");
