@@ -151,7 +151,7 @@ tether tether_new(tether_options opts) {
     GtkWindow *window = self->window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
     gtk_window_set_default_size(window, opts.initial_width, opts.initial_height);
     gtk_widget_set_size_request(GTK_WIDGET(window), opts.minimum_width, opts.minimum_height);
-    gtk_window_set_decorated(window, FALSE);
+    if (opts.borderless) gtk_window_set_decorated(window, FALSE);
     gtk_window_set_position(window, GTK_WIN_POS_CENTER);
 
     // Free resources and notify the user when the window's been closed.
