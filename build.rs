@@ -9,6 +9,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     env::set_current_dir(&native_path)?;
 
+    // Make sure the platform is supported.
+
+    if !cfg!(any(
+        target_os = "linux",
+        target_os = "windows",
+        target_os = "macos",
+    )) {
+        panic!("unsupported platform");
+    }
+
     // Link any platform-specific dependencies.
 
     if cfg!(target_os = "linux") {
@@ -26,17 +36,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else if cfg!(target_os = "macos") {
         println!("cargo:rustc-link-lib=framework=Cocoa");
         println!("cargo:rustc-link-lib=framework=WebKit");
-    } else {
-        panic!("unsupported platform");
     }
 
     // Build the library.
 
-    Command::new("make").status()?;
+    if cfg!(target_os = "linux") {
+        run_script(r#"
+            clang -c -Wall -Wextra `pkg-config --cflags gtk+-3.0 webkit2gtk-4.0` -o "$OUT_DIR/libtether.o" gtk.c
+            ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
+        "#)?;
+    } else if cfg!(target_os = "windows") {
+        run_script(r#"
+            clang-cl /c /EHsc /std:c++17 /W4 /Wx /Fo"%OUT_DIR%\tether.obj" winapi.cpp
+            lib /out:"%OUT_DIR%\tether.lib" "%OUT_DIR%\tether.obj"
+        "#)?;
+    } else if cfg!(target_os = "macos") {
+        run_script(r#"
+            clang -c -ObjC -fobjc-arc -Wall -Wextra -o "$OUT_DIR/libtether.o" cocoa.m
+            ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
+        "#)?;
+    }
 
     // Link the library.
 
-    println!("cargo:rustc-link-search=native={}", native_path.display());
+    println!("cargo:rustc-link-search=native={}", out_path.display());
     println!("cargo:rustc-link-lib=static=tether");
 
     // Generate the bindings to the library.
@@ -48,4 +71,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .write_to_file(out_path.join("bindings.rs"))?;
 
     Ok(())
+}
+
+fn run_script(script: &str) -> io::Result<()> {
+    let mut cmd = if cfg!(target_os = "windows") {
+        let mut cmd = Command::new("cmd");
+        cmd.args(&["/C", script]);
+        cmd
+    } else {
+        let mut cmd = Command::new("sh");
+        cmd.args(&["-c", script]);
+        cmd
+    };
+
+    cmd.status().and_then(|status| if status.success() {
+        Ok(())
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other, "script failed"))
+    })
 }

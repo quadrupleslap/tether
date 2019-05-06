@@ -13,7 +13,7 @@ then this is the library for you!
 
 ## Getting Started
 
-1. Make sure you've installed Clang, Make, and your system's SDK.
+1. Make sure you've installed Clang and your system's SDK.
     - macOS — Xcode
     - Linux — GTK and Webkit2GTK
     - Windows — Visual Studio
