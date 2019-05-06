@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if cfg!(target_os = "linux") {
         run_script(r#"
-            clang -c -Wall -Wextra `pkg-config --cflags gtk+-3.0 webkit2gtk-4.0` -o "$OUT_DIR/libtether.o" gtk.c
+            clang -ffunction-sections -fdata-sections -fPIC -c -Wall -Wextra `pkg-config --cflags gtk+-3.0 webkit2gtk-4.0` -o "$OUT_DIR/libtether.o" gtk.c
             ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
         "#)?;
     } else if cfg!(target_os = "windows") {
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "#)?;
     } else if cfg!(target_os = "macos") {
         run_script(r#"
-            clang -c -ObjC -fobjc-arc -Wall -Wextra -o "$OUT_DIR/libtether.o" cocoa.m
+            clang -ffunction-sections -fdata-sections -fPIC -c -ObjC -fobjc-arc -Wall -Wextra -o "$OUT_DIR/libtether.o" cocoa.m
             ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
         "#)?;
     }
