@@ -13,3 +13,4 @@ log = "0.4"
 [build-dependencies]
 bindgen = "0.49"
 pkg-config = "0.3"
+cc = "1.0"

@@ -46,10 +46,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
         "#)?;
     } else if cfg!(target_os = "windows") {
-        run_script(r#"
-            clang-cl /c /EHsc /std:c++17 /W4 /Wx /Fo"%OUT_DIR%\tether.obj" winapi.cpp
-            lib /out:"%OUT_DIR%\tether.lib" "%OUT_DIR%\tether.obj"
-        "#)?;
+        cc::Build::new()
+            .file("winapi.cpp")
+            .flag("/EHsc")
+            .flag("/std:c++17")
+            .flag("/W4")
+            .compile("tether");
     } else if cfg!(target_os = "macos") {
         run_script(r#"
             clang -ffunction-sections -fdata-sections -fPIC -c -ObjC -fobjc-arc -Wall -Wextra -o "$OUT_DIR/libtether.o" cocoa.m
@@ -59,8 +61,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Link the library.
 
-    println!("cargo:rustc-link-search=native={}", out_path.display());
-    println!("cargo:rustc-link-lib=static=tether");
+    if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+        println!("cargo:rustc-link-search=native={}", out_path.display());
+        println!("cargo:rustc-link-lib=static=tether");
+    }
 
     // Generate the bindings to the library.
 
