@@ -35,6 +35,8 @@ struct _tether {
       didReceiveScriptMessage:(WKScriptMessage *)scriptMessage {
     (void)userContentController;
 
+    if (!handle) return;
+
     id body = [scriptMessage body];
     if (![body isKindOfClass:[NSString class]]) return;
     opts.message(opts.data, [body UTF8String]);
@@ -43,12 +45,16 @@ struct _tether {
 - (void)windowWillClose:(NSNotification *)notification {
     (void)notification;
 
-    WKWebView *wv = (__bridge WKWebView *)handle->webview;
+    if (!handle) return;
+    tether x = handle;
+    handle = NULL;
+
+    WKWebView *wv = (__bridge WKWebView *)x->webview;
     WKUserContentController *ucc = [[wv configuration] userContentController];
     [ucc removeScriptMessageHandlerForName:@"__tether"];
 
     opts.closed(opts.data);
-    free(handle);
+    free(x);
 }
 @end
 
