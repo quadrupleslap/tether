@@ -25,7 +25,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         pkg_config::Config::new()
             .atleast_version("3.14")
             .probe("gtk+-3.0")?;
-
         pkg_config::Config::new()
             .atleast_version("2.8")
             .probe("webkit2gtk-4.0")?;
@@ -38,29 +37,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("cargo:rustc-link-lib=framework=WebKit");
     }
 
-    // Build the library.
+    // Build and link to the library.
 
     if cfg!(target_os = "linux") {
-        run_script(r#"
-            clang -ffunction-sections -fdata-sections -fPIC -c -Wall -Wextra `pkg-config --cflags gtk+-3.0 webkit2gtk-4.0` -o "$OUT_DIR/libtether.o" gtk.c
-            ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
-        "#)?;
+        let mut cc = cc::Build::new();
+
+        for flag in sh("pkg-config --cflags gtk+-3.0 webkit2gtk-4.0")?.split_whitespace() {
+            cc.flag(flag);
+        }
+
+        cc.file("gtk.c").compile("tether");
     } else if cfg!(target_os = "windows") {
-        run_script(r#"
-            clang-cl /c /EHsc /std:c++17 /W4 /Wx /Fo"%OUT_DIR%\tether.obj" winapi.cpp
-            lib /out:"%OUT_DIR%\tether.lib" "%OUT_DIR%\tether.obj"
-        "#)?;
+        cc::Build::new()
+            .compiler("clang-cl")
+            .flag("/EHsc")
+            .flag("/std:c++17")
+            .file("winapi.cpp")
+            .compile("tether");
     } else if cfg!(target_os = "macos") {
-        run_script(r#"
-            clang -ffunction-sections -fdata-sections -fPIC -c -ObjC -fobjc-arc -Wall -Wextra -o "$OUT_DIR/libtether.o" cocoa.m
-            ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
-        "#)?;
+        cc::Build::new()
+            .flag("-ObjC")
+            .flag("-fobjc-arc")
+            .file("cocoa.m")
+            .compile("tether");
     }
-
-    // Link the library.
-
-    println!("cargo:rustc-link-search=native={}", out_path.display());
-    println!("cargo:rustc-link-lib=static=tether");
 
     // Generate the bindings to the library.
 
@@ -73,20 +73,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn run_script(script: &str) -> io::Result<()> {
-    let mut cmd = if cfg!(target_os = "windows") {
-        let mut cmd = Command::new("cmd");
-        cmd.args(&["/C", script]);
-        cmd
-    } else {
-        let mut cmd = Command::new("sh");
-        cmd.args(&["-c", script]);
-        cmd
-    };
-
-    cmd.status().and_then(|status| if status.success() {
-        Ok(())
-    } else {
-        Err(io::Error::new(io::ErrorKind::Other, "script failed"))
-    })
+fn sh(script: &str) -> io::Result<String> {
+    Command::new("sh")
+        .args(&["-c", script])
+        .output()
+        .and_then(|o| if o.status.success() {
+            Ok(String::from_utf8_lossy(&o.stdout).into())
+        } else {
+            Err(io::Error::new(io::ErrorKind::Other, "script failed"))
+        })
 }
