@@ -49,7 +49,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         cc.file("gtk.c").compile("tether");
     } else if cfg!(target_os = "windows") {
         cc::Build::new()
-            .compiler("clang-cl")
             .flag("/EHsc")
             .flag("/std:c++17")
             .file("winapi.cpp")
