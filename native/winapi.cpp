@@ -5,12 +5,15 @@
 #include <objbase.h>
 #include <Windows.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Web.Http.h>
 #include <winrt/Windows.Web.UI.Interop.h>
+#include <iostream>
 
 #include "tether.h"
 
 using namespace winrt;
 using namespace Windows::Foundation;
+using namespace Windows::Web::Http;
 using namespace Windows::Web::UI;
 using namespace Windows::Web::UI::Interop;
 
@@ -81,6 +84,31 @@ struct _tether {
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
 
         webview.AddInitializeScript(L"window.tether = function (s) { window.external.notify(s); };");
+	    webview.WebResourceRequested([](const IWebViewControl& e1, const WebViewControlWebResourceRequestedEventArgs& e2) {
+            // another possibility is to use webview.NavigateToLocalStreamUri instead of webview.WebResourceRequested
+            auto const uri = e2.Request().RequestUri();
+            if( (uri.Host() == L"127.0.0.1") ||
+                (uri.Host() == L"localhost")) {
+
+                Windows::Web::Http::HttpClient httpClient{};
+
+                HttpResponseMessage msg;
+                if (e2.Request().Method().ToString() == HttpMethod::Get().ToString()) // why strings?
+                    msg = block(httpClient.GetAsync(uri));
+                else if (e2.Request().Method().ToString() == HttpMethod::Post().ToString())
+                    msg = block(httpClient.PostAsync(uri, e2.Request().Content())); // untested
+                else {
+                    std::wcout << "Skipping " << e2.Request().Method().ToString().c_str() << " " << uri.ToString().c_str() <<  std::endl;
+                    return;
+                }
+
+                std::wcout << "Got local:  " << (int32_t)msg.StatusCode() << " " << e2.Request().Method().ToString().c_str() << " " << uri.ToString().c_str() <<  std::endl;
+                e2.Response(msg);
+            } else {
+                //std::wcout << "Got remote: " << e2.Request().RequestUri().ToString().c_str() <<  std::endl;
+            }
+		});
+
         auto data = opts.data;
         auto message = opts.message;
         webview.ScriptNotify([=](auto const&, auto const& args) {
