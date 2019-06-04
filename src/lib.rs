@@ -6,9 +6,14 @@ use log::error;
 use std::cell::{Cell, RefCell};
 use std::ffi::{c_void, CStr, CString};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
+// tracks if tether::start was called
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+// ensure the code passed to tether::dispatch is only executed on the main thread
 thread_local! {
-    static INITIALIZED: Cell<bool> = Cell::new(false);
+    static ON_MAIN_THREAD: Cell<bool> = Cell::new(false);
 }
 
 /// An event handler; you probably want to implement one.
@@ -62,11 +67,11 @@ impl Window {
         let raw = unsafe { raw::tether_new(opts) };
         this.data.replace(Some(raw));
 
-        unsafe extern fn closed(data: *mut c_void) {
+        unsafe extern "C" fn closed(data: *mut c_void) {
             let _ = Box::<Data>::from_raw(data as _);
         }
 
-        unsafe extern fn message(data: *mut c_void, message: *const i8) {
+        unsafe extern "C" fn message(data: *mut c_void, message: *const i8) {
             let data = data as *mut Data;
 
             match CStr::from_ptr(message).to_str() {
@@ -189,15 +194,19 @@ impl Default for Options {
 /// before, and that this is the main thread. The provided callback should
 /// contain your "real" main function.
 pub unsafe fn start(cb: fn()) {
-    static mut INIT: Option<fn()> = None;
-    INIT = Some(cb);
+    // could possibly combine CB and INITIALIZED into a single atomic
+    static mut CB: Option<fn()> = None;
 
-    unsafe extern fn init() {
-        INITIALIZED.with(|initialized| {
-            initialized.set(true);
-        });
+    let prev_init = INITIALIZED.swap(true, Ordering::Relaxed); // just need atomicity
+    if prev_init {
+        panic!("tether::start was already called once before");
+    }
 
-        INIT.unwrap()();
+    CB = Some(cb);
+
+    unsafe extern "C" fn init() {
+        ON_MAIN_THREAD.with(|initialized| initialized.set(true));
+        CB.unwrap()();
     }
 
     raw::tether_start(Some(init));
@@ -217,22 +226,39 @@ pub fn dispatch<F: FnOnce() + Send>(f: F) {
     assert_initialized();
 
     unsafe {
-        raw::tether_dispatch(
-            Box::<F>::into_raw(Box::new(f)) as _,
-            Some(execute::<F>),
-        );
+        raw::tether_dispatch(Box::<F>::into_raw(Box::new(f)) as _, Some(execute::<F>));
     }
 
-    unsafe extern fn execute<F: FnOnce() + Send>(data: *mut c_void) {
-        Box::<F>::from_raw(data as _)();
+    unsafe extern "C" fn execute<F: FnOnce() + Send>(data: *mut c_void) {
+        // unwinding in foriegn code is UB, wrap with catch_unwind to prevent that
+        let panicked = std::panic::catch_unwind(|| {
+            assert_on_main_thread();
+            Box::<F>::from_raw(data as _)();
+        })
+        .is_err();
+
+        if panicked {
+            error!("error when executing closure provided to tether::dispatch");
+        }
     }
 }
 
-/// Make sure that we're initialized and on the main thread.
+/// Make sure that we're initialized
 fn assert_initialized() {
-    INITIALIZED.with(|initialized| {
-        assert!(initialized.get());
-    });
+    assert!(
+        INITIALIZED.load(Ordering::Relaxed), // just need atomicity
+        "tether::start not called yet"
+    );
+}
+
+/// Make sure that we're on the main thread
+fn assert_on_main_thread() {
+    ON_MAIN_THREAD.with(|flag| {
+        assert!(
+            flag.get(),
+            "tether::dispatch not running on the main thread"
+        )
+    })
 }
 
 fn string_to_cstring<I: Into<String>>(s: I) -> CString {
