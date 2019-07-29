@@ -6,10 +6,14 @@ use log::error;
 use std::cell::{Cell, RefCell};
 use std::ffi::{c_void, CStr, CString};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::{panic, process};
 
 thread_local! {
-    static INITIALIZED: Cell<bool> = Cell::new(false);
+    static MAIN_THREAD: Cell<bool> = Cell::new(false);
 }
+
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 /// An event handler; you probably want to implement one.
 ///
@@ -17,7 +21,9 @@ thread_local! {
 /// - The handler is dropped when the window is closed.
 pub trait Handler: 'static {
     /// The webpage called `window.tether` with the given string.
-    fn handle(&mut self, window: Window, message: &str);
+    fn handle(&mut self, window: Window, message: &str) {
+        let _ = (window, message);
+    }
 }
 
 impl<F: FnMut(Window, &str) + 'static> Handler for F {
@@ -37,7 +43,7 @@ type Data = (Window, Box<dyn Handler>);
 impl Window {
     /// Make a new window with the given options.
     pub fn new(opts: Options) -> Self {
-        assert_initialized();
+        assert_main();
 
         let this = Window {
             data: Rc::new(RefCell::new(None)),
@@ -63,20 +69,24 @@ impl Window {
         this.data.replace(Some(raw));
 
         unsafe extern fn closed(data: *mut c_void) {
-            let _ = Box::<Data>::from_raw(data as _);
+            abort_on_panic(|| {
+                let _ = Box::<Data>::from_raw(data as _);
+            });
         }
 
         unsafe extern fn message(data: *mut c_void, message: *const i8) {
-            let data = data as *mut Data;
+            abort_on_panic(|| {
+                let data = data as *mut Data;
 
-            match CStr::from_ptr(message).to_str() {
-                Ok(message) => {
-                    (*data).1.handle((*data).0.clone(), message);
+                match CStr::from_ptr(message).to_str() {
+                    Ok(message) => {
+                        (*data).1.handle((*data).0.clone(), message);
+                    }
+                    Err(e) => {
+                        error!("{}", e);
+                    }
                 }
-                Err(e) => {
-                    error!("{}", e);
-                }
-            }
+            });
         }
 
         this
@@ -193,11 +203,15 @@ pub unsafe fn start(cb: fn()) {
     INIT = Some(cb);
 
     unsafe extern fn init() {
-        INITIALIZED.with(|initialized| {
-            initialized.set(true);
-        });
+        abort_on_panic(|| {
+            MAIN_THREAD.with(|initialized| {
+                initialized.set(true);
+            });
 
-        INIT.unwrap()();
+            INITIALIZED.store(true, Ordering::Relaxed);
+
+            INIT.unwrap()();
+        });
     }
 
     raw::tether_start(Some(init));
@@ -205,7 +219,7 @@ pub unsafe fn start(cb: fn()) {
 
 /// Terminate the application as gracefully as possible.
 pub fn exit() {
-    assert_initialized();
+    assert_main();
 
     unsafe {
         raw::tether_exit();
@@ -224,13 +238,26 @@ pub fn dispatch<F: FnOnce() + Send>(f: F) {
     }
 
     unsafe extern fn execute<F: FnOnce() + Send>(data: *mut c_void) {
-        Box::<F>::from_raw(data as _)();
+        abort_on_panic(|| {
+            Box::<F>::from_raw(data as _)();
+        });
     }
 }
 
-/// Make sure that we're initialized and on the main thread.
+fn abort_on_panic<F: FnOnce() + panic::UnwindSafe>(f: F) {
+    if panic::catch_unwind(f).is_err() {
+        process::abort();
+    }
+}
+
+/// Make sure that we're initialized.
 fn assert_initialized() {
-    INITIALIZED.with(|initialized| {
+    assert!(INITIALIZED.load(Ordering::Relaxed));
+}
+
+/// Make sure that we're initialized and on the main thread.
+fn assert_main() {
+    MAIN_THREAD.with(|initialized| {
         assert!(initialized.get());
     });
 }
