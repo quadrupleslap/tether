@@ -31,4 +31,4 @@ produce a bunch of weird errors.
 | ---------------- | ---------- | ------------------- |
 | Windows          | UWP        | Windows 10          |
 | macOS            | WebKit     | macOS 10.10         |
-| Linux            | Webkit2GTK | Webkit2GTK 2.8      |
+| Linux            | Webkit2GTK | Webkit2GTK 2.22     |

@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .atleast_version("3.14")
             .probe("gtk+-3.0")?;
         pkg_config::Config::new()
-            .atleast_version("2.8")
+            .atleast_version("2.22")
             .probe("webkit2gtk-4.0")?;
     } else if cfg!(target_os = "windows") {
         println!("cargo:rustc-link-lib=dylib=ole32");
