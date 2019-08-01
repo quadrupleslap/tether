@@ -20,6 +20,7 @@ typedef struct tether_options {
            initial_height,
            minimum_width,
            minimum_height;
+    const char * icon_name;
     bool borderless,
          debug;
     // The data to pass to event handlers.

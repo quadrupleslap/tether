@@ -51,11 +51,15 @@ impl Window {
 
         let handler = opts.handler.unwrap_or(Box::new(|_, _: &_| {}));
 
+        let s = string_to_cstring(opts.icon_name);
+
         let opts = raw::tether_options {
             initial_width: opts.initial_width,
             initial_height: opts.initial_height,
             minimum_width: opts.minimum_width,
             minimum_height: opts.minimum_height,
+
+            icon_name: s.as_ptr(),
 
             borderless: opts.borderless,
             debug: opts.debug,
@@ -168,6 +172,9 @@ pub struct Options {
     /// The minimum window height in pixels.
     pub minimum_height: usize,
 
+    /// Path to icon file
+    pub icon_name: &'static str,
+
     /// Whether to draw the title bar and stuff like that.
     pub borderless: bool,
     /// I'm not entirely sure what enabling this does.
@@ -184,6 +191,8 @@ impl Default for Options {
             initial_height: 480,
             minimum_width: 480,
             minimum_height: 360,
+
+            icon_name: "",
 
             borderless: false,
             debug: false,

@@ -151,6 +151,7 @@ tether tether_new(tether_options opts) {
     GtkWindow *window = self->window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
     gtk_window_set_default_size(window, opts.initial_width, opts.initial_height);
     gtk_widget_set_size_request(GTK_WIDGET(window), opts.minimum_width, opts.minimum_height);
+    if (opts.icon_name[0] != '\0') gtk_window_set_icon(window, gdk_pixbuf_new_from_file(opts.icon_name, NULL));
     if (opts.borderless) gtk_window_set_decorated(window, FALSE);
     gtk_window_set_position(window, GTK_WIN_POS_CENTER);
 
